@@ -1,4 +1,4 @@
--- LocalScript: Spawn & Hold Persistent Pets for Grow a Garden
+-- LocalScript: Spawn & Hold Persistent Pets for Grow a Garden (No Model Input)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,16 +20,16 @@ end
 
 -- Server-side: spawn pet and keep persistent
 if RunService:IsServer() then
-    remote.OnServerEvent:Connect(function(player, petName, age, weight, modelName)
-        -- Find model in ReplicatedStorage
-        local template = ReplicatedStorage:FindFirstChild(modelName)
+    remote.OnServerEvent:Connect(function(player, petName, age, weight)
+        -- Find pet model by name inside ReplicatedStorage
+        local template = ReplicatedStorage:FindFirstChild(petName)
         if not template then return end
 
         local clone
         pcall(function() clone = template:Clone() end)
         if not clone then return end
 
-        clone.Name = petName or clone.Name
+        clone.Name = petName
         clone:SetAttribute("Age", age or 1)
         clone:SetAttribute("Weight", weight or 1)
 
@@ -115,8 +115,6 @@ createLabel("Age:", UDim2.fromScale(0.05,0.3))
 local ageBox = createTextbox("Enter age", UDim2.fromScale(0.05,0.4))
 createLabel("Weight:", UDim2.fromScale(0.05,0.55))
 local weightBox = createTextbox("Enter weight", UDim2.fromScale(0.05,0.65))
-createLabel("Model Name:", UDim2.fromScale(0.05,0.7))
-local modelBox = createTextbox("Enter model name", UDim2.fromScale(0.05,0.8))
 
 -- Spawn Button
 local spawnBtn = Instance.new("TextButton")
@@ -124,7 +122,7 @@ spawnBtn.Text = "Spawn Pet"
 spawnBtn.TextScaled = true
 spawnBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
 spawnBtn.Size = UDim2.fromScale(0.9,0.12)
-spawnBtn.Position = UDim2.fromScale(0.05,0.93)
+spawnBtn.Position = UDim2.fromScale(0.05,0.8)
 spawnBtn.Parent = frame
 local cornerBtn = Instance.new("UICorner", spawnBtn)
 cornerBtn.CornerRadius = UDim.new(0,8)
@@ -159,9 +157,8 @@ spawnBtn.Activated:Connect(function()
     local petName = nameBox.Text
     local age = tonumber(ageBox.Text) or 1
     local weight = tonumber(weightBox.Text) or 1
-    local modelName = modelBox.Text
-    if modelName ~= "" then
-        remote:FireServer(petName, age, weight, modelName)
+    if petName ~= "" then
+        remote:FireServer(petName, age, weight)
     end
 end)
 
