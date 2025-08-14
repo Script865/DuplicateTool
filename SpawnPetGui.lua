@@ -1,11 +1,8 @@
--- LocalScript: Spawn Pet with Random Age & Weight
--- Author: Script865
-
+-- LocalScript: Spawn Pet with Beautiful GUI
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local GuiService = game:GetService("GuiService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -78,64 +75,77 @@ if RunService:IsServer() then
     return
 end
 
--- ========= GUI =========
+-- ========= Beautiful GUI =========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "SpawnPetGUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.Parent = playerGui
 
+-- Main Frame
 local frame = Instance.new("Frame")
 frame.AnchorPoint = Vector2.new(0.5,0.5)
 frame.Position = UDim2.fromScale(0.5,0.5)
-frame.Size = UDim2.fromScale(0.25,0.2)
-frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
+frame.Size = UDim2.fromScale(0.3,0.2)
+frame.BackgroundColor3 = Color3.fromRGB(45,45,60)
+frame.BackgroundTransparency = 0
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Parent = screenGui
 
-local uicorner = Instance.new("UICorner")
-uicorner.CornerRadius = UDim.new(0,12)
-uicorner.Parent = frame
+local uicorner = Instance.new("UICorner", frame)
+uicorner.CornerRadius = UDim.new(0,15)
 
-local uiStroke = Instance.new("UIStroke")
+local uiStroke = Instance.new("UIStroke", frame)
 uiStroke.Thickness = 2
-uiStroke.Transparency = 0.25
-uiStroke.Parent = frame
+uiStroke.Color = Color3.fromRGB(100,100,180)
+uiStroke.Transparency = 0.2
 
 -- Title
 local title = Instance.new("TextLabel")
-title.Text = "Spawn Pet"
+title.Text = "🌟 Spawn Pet 🌟"
 title.TextScaled = true
-title.TextColor3 = Color3.fromRGB(220,220,220)
+title.TextColor3 = Color3.fromRGB(240,240,255)
 title.BackgroundTransparency = 1
 title.Size = UDim2.fromScale(1,0.3)
+title.Font = Enum.Font.GothamBold
 title.Parent = frame
 
--- TextBox for Pet Name
+-- Pet Name Box
 local nameBox = Instance.new("TextBox")
 nameBox.PlaceholderText = "Enter Pet Name"
 nameBox.Text = ""
 nameBox.TextScaled = true
-nameBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+nameBox.BackgroundColor3 = Color3.fromRGB(65,65,90)
 nameBox.BorderSizePixel = 0
-nameBox.Size = UDim2.fromScale(0.9,0.3)
+nameBox.Size = UDim2.fromScale(0.9,0.35)
 nameBox.Position = UDim2.fromScale(0.05,0.35)
-nameBox.TextColor3 = Color3.fromRGB(220,220,220)
-local corner = Instance.new("UICorner", nameBox)
-corner.CornerRadius = UDim.new(0,6)
+nameBox.TextColor3 = Color3.fromRGB(255,255,255)
+nameBox.Font = Enum.Font.Gotham
+local cornerName = Instance.new("UICorner", nameBox)
+cornerName.CornerRadius = UDim.new(0,10)
 nameBox.Parent = frame
 
 -- Spawn Button
 local spawnBtn = Instance.new("TextButton")
 spawnBtn.Text = "Spawn Pet"
 spawnBtn.TextScaled = true
-spawnBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
+spawnBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
 spawnBtn.Size = UDim2.fromScale(0.9,0.25)
-spawnBtn.Position = UDim2.fromScale(0.05,0.7)
-spawnBtn.Parent = frame
+spawnBtn.Position = UDim2.fromScale(0.05,0.75)
+spawnBtn.TextColor3 = Color3.fromRGB(255,255,255)
+spawnBtn.Font = Enum.Font.GothamBold
 local cornerBtn = Instance.new("UICorner", spawnBtn)
-cornerBtn.CornerRadius = UDim.new(0,8)
+cornerBtn.CornerRadius = UDim.new(0,10)
+spawnBtn.Parent = frame
+
+-- Hover effect
+spawnBtn.MouseEnter:Connect(function()
+    spawnBtn.BackgroundColor3 = Color3.fromRGB(130,130,230)
+end)
+spawnBtn.MouseLeave:Connect(function()
+    spawnBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
+end)
 
 -- Dragging GUI
 local dragging, dragInput, dragStart, startPos
