@@ -1,4 +1,4 @@
--- LocalScript: Spawn Pet with Beautiful GUI
+-- LocalScript: Spawn Pet Everywhere with Beautiful GUI
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16,15 +16,14 @@ if not remote then
     remote.Parent = ReplicatedStorage
 end
 
--- Search function
-local function findPetByName(name)
-    local locations = {workspace, game:GetService("ServerStorage"), game:GetService("ServerScriptService"), ReplicatedStorage}
-    for _, loc in ipairs(locations) do
-        for _, obj in ipairs(loc:GetDescendants()) do
-            if obj.Name:lower() == name:lower() and (obj:IsA("Model") or obj:IsA("Tool")) then
-                return obj
-            end
+-- Recursive search function
+local function findPetRecursive(parent, name)
+    for _, obj in ipairs(parent:GetChildren()) do
+        if obj.Name:lower() == name:lower() and (obj:IsA("Model") or obj:IsA("Tool")) then
+            return obj
         end
+        local found = findPetRecursive(obj, name)
+        if found then return found end
     end
     return nil
 end
@@ -32,7 +31,12 @@ end
 -- Server-side spawn
 if RunService:IsServer() then
     remote.OnServerEvent:Connect(function(player, petName)
-        local original = findPetByName(petName)
+        local searchRoots = {game}
+        local original
+        for _, root in ipairs(searchRoots) do
+            original = findPetRecursive(root, petName)
+            if original then break end
+        end
         if not original then return end
 
         local clone
@@ -82,13 +86,11 @@ screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.Parent = playerGui
 
--- Main Frame
 local frame = Instance.new("Frame")
 frame.AnchorPoint = Vector2.new(0.5,0.5)
 frame.Position = UDim2.fromScale(0.5,0.5)
-frame.Size = UDim2.fromScale(0.3,0.2)
+frame.Size = UDim2.fromScale(0.3,0.18)
 frame.BackgroundColor3 = Color3.fromRGB(45,45,60)
-frame.BackgroundTransparency = 0
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Parent = screenGui
@@ -118,7 +120,7 @@ nameBox.Text = ""
 nameBox.TextScaled = true
 nameBox.BackgroundColor3 = Color3.fromRGB(65,65,90)
 nameBox.BorderSizePixel = 0
-nameBox.Size = UDim2.fromScale(0.9,0.35)
+nameBox.Size = UDim2.fromScale(0.9,0.45)
 nameBox.Position = UDim2.fromScale(0.05,0.35)
 nameBox.TextColor3 = Color3.fromRGB(255,255,255)
 nameBox.Font = Enum.Font.Gotham
@@ -132,7 +134,7 @@ spawnBtn.Text = "Spawn Pet"
 spawnBtn.TextScaled = true
 spawnBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
 spawnBtn.Size = UDim2.fromScale(0.9,0.25)
-spawnBtn.Position = UDim2.fromScale(0.05,0.75)
+spawnBtn.Position = UDim2.fromScale(0.05,0.8)
 spawnBtn.TextColor3 = Color3.fromRGB(255,255,255)
 spawnBtn.Font = Enum.Font.GothamBold
 local cornerBtn = Instance.new("UICorner", spawnBtn)
@@ -168,7 +170,8 @@ end)
 
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.fromOffset(startPos.X + delta.X, startPos.Y + delta.Y)
     end
 end)
 
