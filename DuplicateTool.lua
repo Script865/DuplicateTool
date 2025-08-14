@@ -1,4 +1,4 @@
--- Duplicate أي شيء بيدك + GUI قابل للسحب
+-- LocalScript: Duplicate any item in your hand only
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,7 +9,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- إنشاء RemoteEvent
+-- RemoteEvent
 local REMOTE_NAME = "RequestDuplicateItem"
 local remote = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
 if not remote then
@@ -18,23 +18,24 @@ if not remote then
 	remote.Parent = ReplicatedStorage
 end
 
--- السيرفر: عمل النسخ
+-- Server-side duplication
 if RunService:IsServer() then
 	remote.OnServerEvent:Connect(function(player, item)
 		if typeof(item) ~= "Instance" then return end
 		local character = player.Character
 		if not character then return end
 
+		-- Clone the item
 		local clone
 		pcall(function() clone = item:Clone() end)
 		if not clone then return end
 
+		-- Parent clone to player's character temporarily to be held
+		clone.Parent = character
 		if clone:IsA("Tool") then
-			clone.Parent = player:FindFirstChildOfClass("Backpack")
-		else
-			-- لأي عنصر آخر نحطه مباشرة على الشخصية
-			clone.Parent = character
-			clone:SetPrimaryPartCFrame(character:GetPivot()) -- لو كان Model
+			player.Character.Humanoid:EquipTool(clone)
+		elseif clone:IsA("Model") and clone.PrimaryPart then
+			clone:SetPrimaryPartCFrame(character:GetPivot())
 		end
 	end)
 	return
@@ -95,12 +96,12 @@ tip.AnchorPoint = Vector2.new(0.5,0)
 tip.Position = UDim2.fromScale(0.5,1)
 tip.Size = UDim2.fromScale(1,0.6)
 tip.BackgroundTransparency = 1
-tip.Text = "اسحب بالإصبع (جوال) أو بزر الماوس الأيمن (PC)"
+tip.Text = "Drag (Mobile) or Right Click (PC)"
 tip.TextScaled = true
 tip.TextColor3 = Color3.fromRGB(220,220,220)
 tip.Parent = frame
 
--- ========= السحب =========
+-- ========= Dragging =========
 local dragging, dragInput, dragStart, startPos
 
 local function update(input)
@@ -126,27 +127,20 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ========= إيجاد العنصر الممسوك =========
-local function getEquippedItem()
+-- ========= Get held item =========
+local function getHeldItem()
 	local character = player.Character
 	if not character then return nil end
-	for _, inst in ipairs(character:GetChildren()) do
-		if inst:IsA("Tool") then
-			return inst
-		end
-	end
-	-- لو ما في Tool، نبحث عن آخر عنصر مسموح يتكرر (Hat أو Accessory)
-	for _, inst in ipairs(character:GetChildren()) do
-		if inst:IsA("Accessory") or inst:IsA("Model") then
-			return inst
-		end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid:FindFirstChildOfClass("Tool") then
+		return humanoid:FindFirstChildOfClass("Tool")
 	end
 	return nil
 end
 
--- ========= عند الضغط =========
+-- ========= Button click =========
 button.Activated:Connect(function()
-	local item = getEquippedItem()
+	local item = getHeldItem()
 	if item then
 		remote:FireServer(item)
 		button.AutoButtonColor = false
@@ -165,7 +159,7 @@ button.Activated:Connect(function()
 	end
 end)
 
--- ========= ضبط الإطار داخل الشاشة =========
+-- ========= Clamp GUI to screen =========
 local function clampToScreen()
 	local guiInset = GuiService:GetGuiInset()
 	local absSize = screenGui.AbsoluteSize
