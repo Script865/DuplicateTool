@@ -1,4 +1,4 @@
--- LocalScript: Spawn & Hold Persistent Pets for Grow a Garden (No Model Input)
+-- LocalScript: Spawn & Hold Persistent Pets for Grow a Garden (No Model Input, Auto Generic)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,26 +21,30 @@ end
 -- Server-side: spawn pet and keep persistent
 if RunService:IsServer() then
     remote.OnServerEvent:Connect(function(player, petName, age, weight)
-        -- Find pet model by name inside ReplicatedStorage
-        local template = ReplicatedStorage:FindFirstChild(petName)
-        if not template then return end
+        -- Create a generic part as pet model
+        local pet = Instance.new("Part")
+        pet.Name = petName or "Pet"
+        pet.Size = Vector3.new(2,2,2)
+        pet.Anchored = false
+        pet.CanCollide = true
+        pet:SetAttribute("Age", age or 1)
+        pet:SetAttribute("Weight", weight or 1)
 
-        local clone
-        pcall(function() clone = template:Clone() end)
-        if not clone then return end
-
-        clone.Name = petName
-        clone:SetAttribute("Age", age or 1)
-        clone:SetAttribute("Weight", weight or 1)
-
-        -- Parent to character to hold
-        clone.Parent = player.Character or player.CharacterAdded:Wait()
-        if clone:IsA("Tool") then
-            local humanoid = clone.Parent:FindFirstChildOfClass("Humanoid")
-            if humanoid then humanoid:EquipTool(clone) end
-        elseif clone:IsA("Model") and clone.PrimaryPart then
-            clone:SetPrimaryPartCFrame(player.Character:GetPivot())
+        -- Optional: color by pet type (example)
+        if petName:lower():find("raccoon") then
+            pet.BrickColor = BrickColor.new("Really black")
+        elseif petName:lower():find("chicken") then
+            pet.BrickColor = BrickColor.new("Bright yellow")
+        else
+            pet.BrickColor = BrickColor.Random()
         end
+
+        -- Position near player
+        local character = player.Character or player.CharacterAdded:Wait()
+        pet.CFrame = character:GetPivot() * CFrame.new(0,3,0)
+
+        -- Parent to Workspace
+        pet.Parent = workspace
 
         -- Store in ReplicatedStorage for persistence
         local storage = ReplicatedStorage:FindFirstChild("PersistentPets")
@@ -49,7 +53,28 @@ if RunService:IsServer() then
             storage.Name = "PersistentPets"
             storage.Parent = ReplicatedStorage
         end
-        clone.Parent = storage
+        pet.Parent = storage
+
+        -- Example ability: if raccoon, steal nearby fruits
+        if petName:lower():find("raccoon") then
+            spawn(function()
+                while pet.Parent do
+                    for _, obj in ipairs(workspace:GetChildren()) do
+                        if obj:IsA("Part") and obj.Name:lower():find("fruit") then
+                            obj.CFrame = pet.CFrame * CFrame.new(0,2,0)
+                        end
+                    end
+                    task.wait(2)
+                end
+            end)
+        end
+
+        -- Equip as Tool if player wants to hold
+        local tool = Instance.new("Tool")
+        tool.Name = petName
+        tool.RequiresHandle = false
+        pet.Parent = tool
+        tool.Parent = player.Backpack
     end)
     return
 end
