@@ -1,44 +1,55 @@
--- LocalScript: Duplicate any item in your hand only
+-- LocalScript: Persistent Duplicate any held item
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- RemoteEvent
-local REMOTE_NAME = "RequestDuplicateItem"
+-- Create RemoteEvent
+local REMOTE_NAME = "RequestPersistentDuplicate"
 local remote = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
 if not remote then
-	remote = Instance.new("RemoteEvent")
-	remote.Name = REMOTE_NAME
-	remote.Parent = ReplicatedStorage
+    remote = Instance.new("RemoteEvent")
+    remote.Name = REMOTE_NAME
+    remote.Parent = ReplicatedStorage
 end
 
 -- Server-side duplication
 if RunService:IsServer() then
-	remote.OnServerEvent:Connect(function(player, item)
-		if typeof(item) ~= "Instance" then return end
-		local character = player.Character
-		if not character then return end
+    remote.OnServerEvent:Connect(function(player, item)
+        if typeof(item) ~= "Instance" then return end
+        local character = player.Character or player.CharacterAdded:Wait()
 
-		-- Clone the item
-		local clone
-		pcall(function() clone = item:Clone() end)
-		if not clone then return end
+        local clone
+        pcall(function() clone = item:Clone() end)
+        if not clone then return end
 
-		-- Parent clone to player's character temporarily to be held
-		clone.Parent = character
-		if clone:IsA("Tool") then
-			player.Character.Humanoid:EquipTool(clone)
-		elseif clone:IsA("Model") and clone.PrimaryPart then
-			clone:SetPrimaryPartCFrame(character:GetPivot())
-		end
-	end)
-	return
+        -- Parent clone to character to stay in hand
+        clone.Parent = character
+        if clone:IsA("Tool") then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:EquipTool(clone)
+            end
+        elseif clone:IsA("Model") and clone.PrimaryPart then
+            clone:SetPrimaryPartCFrame(character:GetPivot())
+        end
+
+        -- Store clone in ReplicatedStorage to persist across respawn
+        local storage = ReplicatedStorage:FindFirstChild("PersistentDuplicates")
+        if not storage then
+            storage = Instance.new("Folder")
+            storage.Name = "PersistentDuplicates"
+            storage.Parent = ReplicatedStorage
+        end
+        clone.Parent = storage
+    end)
+    return
 end
 
 -- ========= GUI =========
@@ -103,71 +114,70 @@ tip.Parent = frame
 
 -- ========= Dragging =========
 local dragging, dragInput, dragStart, startPos
-
 local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.fromOffset(startPos.X + delta.X, startPos.Y + delta.Y)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.fromOffset(startPos.X + delta.X, startPos.Y + delta.Y)
 end
 
 frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-		dragInput = input
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then dragging = false end
-		end)
-	end
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        dragInput = input
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-		update(input)
-	end
+    if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        update(input)
+    end
 end)
 
 -- ========= Get held item =========
 local function getHeldItem()
-	local character = player.Character
-	if not character then return nil end
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if humanoid and humanoid:FindFirstChildOfClass("Tool") then
-		return humanoid:FindFirstChildOfClass("Tool")
-	end
-	return nil
+    local character = player.Character
+    if not character then return nil end
+    for _, inst in ipairs(character:GetChildren()) do
+        if inst:IsA("Tool") then return inst end
+        if inst:IsA("Model") and inst.PrimaryPart then return inst end
+    end
+    return nil
 end
 
 -- ========= Button click =========
 button.Activated:Connect(function()
-	local item = getHeldItem()
-	if item then
-		remote:FireServer(item)
-		button.AutoButtonColor = false
-		local old = button.BackgroundColor3
-		button.BackgroundColor3 = Color3.fromRGB(80,120,80)
-		task.wait(0.1)
-		button.BackgroundColor3 = old
-		button.AutoButtonColor = true
-	else
-		button.AutoButtonColor = false
-		local old = button.BackgroundColor3
-		button.BackgroundColor3 = Color3.fromRGB(150,60,60)
-		task.wait(0.15)
-		button.BackgroundColor3 = old
-		button.AutoButtonColor = true
-	end
+    local item = getHeldItem()
+    if item then
+        remote:FireServer(item)
+        button.AutoButtonColor = false
+        local old = button.BackgroundColor3
+        button.BackgroundColor3 = Color3.fromRGB(80,120,80)
+        task.wait(0.1)
+        button.BackgroundColor3 = old
+        button.AutoButtonColor = true
+    else
+        button.AutoButtonColor = false
+        local old = button.BackgroundColor3
+        button.BackgroundColor3 = Color3.fromRGB(150,60,60)
+        task.wait(0.15)
+        button.BackgroundColor3 = old
+        button.AutoButtonColor = true
+    end
 end)
 
 -- ========= Clamp GUI to screen =========
 local function clampToScreen()
-	local guiInset = GuiService:GetGuiInset()
-	local absSize = screenGui.AbsoluteSize
-	local pos = frame.AbsolutePosition
-	local size = frame.AbsoluteSize
-	local x = math.clamp(pos.X, 0, absSize.X - size.X)
-	local y = math.clamp(pos.Y, guiInset.Y, absSize.Y - size.Y)
-	frame.Position = UDim2.fromOffset(x, y)
+    local guiInset = GuiService:GetGuiInset()
+    local absSize = screenGui.AbsoluteSize
+    local pos = frame.AbsolutePosition
+    local size = frame.AbsoluteSize
+    local x = math.clamp(pos.X, 0, absSize.X - size.X)
+    local y = math.clamp(pos.Y, guiInset.Y, absSize.Y - size.Y)
+    frame.Position = UDim2.fromOffset(x, y)
 end
 
 screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(clampToScreen)
