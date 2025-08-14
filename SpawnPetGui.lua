@@ -1,7 +1,5 @@
--- LocalScript: Spawn & Hold Persistent Pets in Grow a Garden
+-- LocalScript: Spawn Pet with Random Age & Weight
 -- Author: Script865
--- GUI: Pet Name, Age, Weight
--- Persistent & copies original Scripts
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +10,7 @@ local GuiService = game:GetService("GuiService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Create RemoteEvent
+-- RemoteEvent
 local REMOTE_NAME = "SpawnPersistentPet"
 local remote = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
 if not remote then
@@ -21,9 +19,9 @@ if not remote then
     remote.Parent = ReplicatedStorage
 end
 
--- Function to search recursively in all descendants
+-- Search function
 local function findPetByName(name)
-    local locations = {workspace, game:GetService("ServerStorage"), game:GetService("ServerScriptService")}
+    local locations = {workspace, game:GetService("ServerStorage"), game:GetService("ServerScriptService"), ReplicatedStorage}
     for _, loc in ipairs(locations) do
         for _, obj in ipairs(loc:GetDescendants()) do
             if obj.Name:lower() == name:lower() and (obj:IsA("Model") or obj:IsA("Tool")) then
@@ -34,9 +32,9 @@ local function findPetByName(name)
     return nil
 end
 
--- Server-side: spawn pet and keep persistent
+-- Server-side spawn
 if RunService:IsServer() then
-    remote.OnServerEvent:Connect(function(player, petName, age, weight)
+    remote.OnServerEvent:Connect(function(player, petName)
         local original = findPetByName(petName)
         if not original then return end
 
@@ -44,9 +42,12 @@ if RunService:IsServer() then
         pcall(function() clone = original:Clone() end)
         if not clone then return end
 
+        -- Random Age & Weight
+        local age = math.random(1,20)
+        local weight = math.random(1,50)
         clone.Name = petName
-        clone:SetAttribute("Age", age or 1)
-        clone:SetAttribute("Weight", weight or 1)
+        clone:SetAttribute("Age", age)
+        clone:SetAttribute("Weight", weight)
 
         -- Position near player
         local character = player.Character or player.CharacterAdded:Wait()
@@ -56,7 +57,7 @@ if RunService:IsServer() then
             clone.Parent = player.Backpack
         end
 
-        -- Parent to Backpack for holding
+        -- Equip Model as Tool
         if clone:IsA("Model") then
             local tool = Instance.new("Tool")
             tool.Name = petName
@@ -87,9 +88,8 @@ screenGui.Parent = playerGui
 local frame = Instance.new("Frame")
 frame.AnchorPoint = Vector2.new(0.5,0.5)
 frame.Position = UDim2.fromScale(0.5,0.5)
-frame.Size = UDim2.fromScale(0.25,0.25)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.BackgroundTransparency = 0.2
+frame.Size = UDim2.fromScale(0.25,0.2)
+frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Parent = screenGui
@@ -103,49 +103,36 @@ uiStroke.Thickness = 2
 uiStroke.Transparency = 0.25
 uiStroke.Parent = frame
 
--- Labels & TextBoxes
-local function createLabel(text, position)
-    local label = Instance.new("TextLabel")
-    label.Text = text
-    label.TextScaled = true
-    label.TextColor3 = Color3.fromRGB(220,220,220)
-    label.BackgroundTransparency = 1
-    label.Size = UDim2.fromScale(0.9,0.15)
-    label.Position = position
-    label.Parent = frame
-    return label
-end
+-- Title
+local title = Instance.new("TextLabel")
+title.Text = "Spawn Pet"
+title.TextScaled = true
+title.TextColor3 = Color3.fromRGB(220,220,220)
+title.BackgroundTransparency = 1
+title.Size = UDim2.fromScale(1,0.3)
+title.Parent = frame
 
-local function createTextbox(placeholder, position)
-    local tb = Instance.new("TextBox")
-    tb.PlaceholderText = placeholder
-    tb.Text = ""
-    tb.TextScaled = true
-    tb.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    tb.BorderSizePixel = 0
-    tb.Size = UDim2.fromScale(0.9,0.12)
-    tb.Position = position
-    tb.TextColor3 = Color3.fromRGB(220,220,220)
-    local corner = Instance.new("UICorner", tb)
-    corner.CornerRadius = UDim.new(0,6)
-    tb.Parent = frame
-    return tb
-end
-
-createLabel("Pet Name:", UDim2.fromScale(0.05,0.05))
-local nameBox = createTextbox("Enter pet name", UDim2.fromScale(0.05,0.15))
-createLabel("Age:", UDim2.fromScale(0.05,0.3))
-local ageBox = createTextbox("Enter age", UDim2.fromScale(0.05,0.4))
-createLabel("Weight:", UDim2.fromScale(0.05,0.55))
-local weightBox = createTextbox("Enter weight", UDim2.fromScale(0.05,0.65))
+-- TextBox for Pet Name
+local nameBox = Instance.new("TextBox")
+nameBox.PlaceholderText = "Enter Pet Name"
+nameBox.Text = ""
+nameBox.TextScaled = true
+nameBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+nameBox.BorderSizePixel = 0
+nameBox.Size = UDim2.fromScale(0.9,0.3)
+nameBox.Position = UDim2.fromScale(0.05,0.35)
+nameBox.TextColor3 = Color3.fromRGB(220,220,220)
+local corner = Instance.new("UICorner", nameBox)
+corner.CornerRadius = UDim.new(0,6)
+nameBox.Parent = frame
 
 -- Spawn Button
 local spawnBtn = Instance.new("TextButton")
 spawnBtn.Text = "Spawn Pet"
 spawnBtn.TextScaled = true
 spawnBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
-spawnBtn.Size = UDim2.fromScale(0.9,0.12)
-spawnBtn.Position = UDim2.fromScale(0.05,0.8)
+spawnBtn.Size = UDim2.fromScale(0.9,0.25)
+spawnBtn.Position = UDim2.fromScale(0.05,0.7)
 spawnBtn.Parent = frame
 local cornerBtn = Instance.new("UICorner", spawnBtn)
 cornerBtn.CornerRadius = UDim.new(0,8)
@@ -178,22 +165,7 @@ end)
 -- Spawn action
 spawnBtn.Activated:Connect(function()
     local petName = nameBox.Text
-    local age = tonumber(ageBox.Text) or 1
-    local weight = tonumber(weightBox.Text) or 1
     if petName ~= "" then
-        remote:FireServer(petName, age, weight)
+        remote:FireServer(petName)
     end
 end)
-
--- Clamp GUI
-local function clampToScreen()
-    local guiInset = GuiService:GetGuiInset()
-    local absSize = screenGui.AbsoluteSize
-    local pos = frame.AbsolutePosition
-    local size = frame.AbsoluteSize
-    local x = math.clamp(pos.X, 0, absSize.X - size.X)
-    local y = math.clamp(pos.Y, guiInset.Y, absSize.Y - size.Y)
-    frame.Position = UDim2.fromOffset(x, y)
-end
-
-screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(clampToScreen)
