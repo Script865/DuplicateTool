@@ -1,4 +1,4 @@
--- LocalScript: ServerStorage Tools GUI
+-- LocalScript: ServerStorage Tools GUI (ScrollingFrame on top)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui") -- ضمان وجود PlayerGui
+local playerGui = player:WaitForChild("PlayerGui")
 
 -- RemoteEvent
 local REMOTE_NAME = "SpawnSingleToolEvent"
@@ -45,7 +45,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ToolsGUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
-screenGui.Parent = playerGui -- وضعه بعد التأكد من PlayerGui
+screenGui.Parent = playerGui
 
 -- Main Frame
 local frame = Instance.new("Frame")
@@ -75,13 +75,15 @@ title.Size = UDim2.fromScale(1,0.1)
 title.Font = Enum.Font.GothamBold
 title.Parent = frame
 
--- ScrollingFrame
+-- ScrollingFrame فوق كل شيء داخل الـ Frame
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.fromScale(0.95,0.85)
+scrollFrame.Size = UDim2.fromScale(0.95,0.9) -- يغطي معظم مساحة Frame
 scrollFrame.Position = UDim2.fromScale(0.025,0.1)
-scrollFrame.BackgroundTransparency = 1
+scrollFrame.BackgroundTransparency = 0.1
+scrollFrame.BackgroundColor3 = Color3.fromRGB(60,60,80)
 scrollFrame.ScrollBarThickness = 8
 scrollFrame.Parent = frame
+scrollFrame.ZIndex = 2 -- يتأكد أنه فوق باقي العناصر
 
 -- UIListLayout ثابت
 local uiList = Instance.new("UIListLayout")
@@ -117,7 +119,7 @@ local function updateTools()
     for _, tool in ipairs(tools) do
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1,0,0,40)
-        btn.BackgroundColor3 = Color3.fromRGB(70,70,120)
+        btn.BackgroundColor3 = Color3.fromRGB(100,100,160)
         btn.TextColor3 = Color3.fromRGB(255,255,255)
         btn.Text = tool.Name
         btn.Font = Enum.Font.Gotham
@@ -125,6 +127,7 @@ local function updateTools()
         local corner = Instance.new("UICorner", btn)
         corner.CornerRadius = UDim.new(0,8)
         btn.Parent = scrollFrame
+        btn.ZIndex = 3 -- فوق الـ ScrollingFrame الخلفي
 
         btn.Activated:Connect(function()
             remote:FireServer(tool.Name)
@@ -134,7 +137,6 @@ local function updateTools()
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
--- تحديث Tools بعد PlayerGui جاهز
 updateTools()
 
 -- Dragging GUI
