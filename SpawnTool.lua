@@ -1,4 +1,4 @@
--- LocalScript: Inventory Tool Duplicator Final
+-- LocalScript: Inventory Tool Duplicator with Draggable GUI
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -18,7 +18,7 @@ frame.Position = UDim2.fromScale(0.5,0.5)
 frame.Size = UDim2.fromScale(0.3,0.5)
 frame.BackgroundColor3 = Color3.fromRGB(40,40,55)
 frame.BorderSizePixel = 0
-frame.Active = true
+frame.Active = true -- مهم عشان Drag
 frame.Parent = screenGui
 
 local uicorner = Instance.new("UICorner", frame)
@@ -119,20 +119,24 @@ task.spawn(function()
 end)
 
 -- Dragging GUI
-local dragging, dragInput, dragStart, startPos
+local dragging = false
+local dragInput, dragStart, startPos
+
 local function update(input)
     local delta = input.Position - dragStart
     frame.Position = UDim2.fromOffset(startPos.X + delta.X, startPos.Y + delta.Y)
 end
 
 frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = frame.Position
         dragInput = input
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
         end)
     end
 end)
