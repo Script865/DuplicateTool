@@ -1,159 +1,57 @@
--- LocalScript: Inventory Tool Duplicator Ultimate
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = game.Players.LocalPlayer
 
-local playerGui = player:WaitForChild("PlayerGui")
+local event = ReplicatedStorage:WaitForChild("DuplicateToolEvent")
 
--- GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "InventoryDuplicatorGUI"
-screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
-screenGui.Parent = playerGui
+-- إنشاء GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "DuplicateGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.AnchorPoint = Vector2.new(0.5,0.5)
-frame.Position = UDim2.fromScale(0.5,0.5)
-frame.Size = UDim2.fromScale(0.3,0.5)
-frame.BackgroundColor3 = Color3.fromRGB(40,40,55)
-frame.BorderSizePixel = 0
+frame.Size = UDim2.new(0, 250, 0, 300)
+frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.Active = true
-frame.Parent = screenGui
-frame.Draggable = true -- Drag on M2 automatically
+frame.Draggable = true
+frame.Parent = gui
 
-local uicorner = Instance.new("UICorner", frame)
-uicorner.CornerRadius = UDim.new(0,15)
-
-local uiStroke = Instance.new("UIStroke", frame)
-uiStroke.Thickness = 2
-uiStroke.Color = Color3.fromRGB(100,100,180)
-uiStroke.Transparency = 0.2
-
-local title = Instance.new("TextLabel")
-title.Text = "🛠 Inventory Tools"
-title.TextScaled = true
-title.TextColor3 = Color3.fromRGB(240,240,255)
-title.BackgroundTransparency = 1
-title.Size = UDim2.fromScale(1,0.1)
-title.Font = Enum.Font.GothamBold
-title.ZIndex = 2
-title.Parent = frame
-
--- ScrollingFrame
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.fromScale(0.95,0.85)
-scrollFrame.Position = UDim2.fromScale(0.025,0.1)
-scrollFrame.BackgroundTransparency = 0.1
-scrollFrame.BackgroundColor3 = Color3.fromRGB(60,60,80)
-scrollFrame.ScrollBarThickness = 8
-scrollFrame.Parent = frame
-scrollFrame.ZIndex = 1
+local scrolling = Instance.new("ScrollingFrame")
+scrolling.Size = UDim2.new(1, -10, 1, -10)
+scrolling.Position = UDim2.new(0, 5, 0, 5)
+scrolling.CanvasSize = UDim2.new(0,0,0,0)
+scrolling.ScrollBarThickness = 6
+scrolling.Parent = frame
 
 local uiList = Instance.new("UIListLayout")
+uiList.Parent = scrolling
 uiList.Padding = UDim.new(0,5)
-uiList.SortOrder = Enum.SortOrder.LayoutOrder
-uiList.Parent = scrollFrame
 
--- Get Inventory Tools
-local function getInventoryTools()
-    local tools = {}
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack then
-        for _, tool in ipairs(backpack:GetChildren()) do
-            if tool:IsA("Tool") then
-                table.insert(tools, tool)
-            end
-        end
-    end
-    local character = player.Character
-    if character then
-        for _, tool in ipairs(character:GetChildren()) do
-            if tool:IsA("Tool") then
-                table.insert(tools, tool)
-            end
-        end
-    end
-    return tools
+-- تحديث الأدوات
+local function refreshTools()
+	scrolling:ClearAllChildren()
+	uiList.Parent = scrolling
+
+	for _,tool in ipairs(player.Backpack:GetChildren()) do
+		if tool:IsA("Tool") then
+			local button = Instance.new("TextButton")
+			button.Size = UDim2.new(1, -10, 0, 40)
+			button.BackgroundColor3 = Color3.fromRGB(70,70,70)
+			button.TextColor3 = Color3.fromRGB(255,255,255)
+			button.Text = "Duplicate: " .. tool.Name
+			button.Parent = scrolling
+
+			button.MouseButton1Click:Connect(function()
+				event:FireServer(tool.Name)
+			end)
+		end
+	end
 end
 
--- Duplicate Tool with script refresh
-local function duplicateTool(tool)
-    local clone = tool:Clone()
-    -- Force reparent scripts inside tool to reset capabilities
-    for _, obj in ipairs(clone:GetDescendants()) do
-        if obj:IsA("Script") or obj:IsA("LocalScript") then
-            local newScript = obj:Clone()
-            newScript.Parent = obj.Parent
-            obj:Destroy()
-        end
-    end
-    clone.Parent = player.Backpack
-end
+-- تحديث عند إضافة/إزالة أدوات
+player.Backpack.ChildAdded:Connect(refreshTools)
+player.Backpack.ChildRemoved:Connect(refreshTools)
 
--- Populate Tools
-local function updateTools()
-    for _, child in ipairs(scrollFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
-    end
-
-    local tools = getInventoryTools()
-    for _, tool in ipairs(tools) do
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1,0,0,40)
-        btn.BackgroundColor3 = Color3.fromRGB(100,100,160)
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
-        btn.Text = tool.Name
-        btn.Font = Enum.Font.Gotham
-        btn.TextScaled = true
-        local corner = Instance.new("UICorner", btn)
-        corner.CornerRadius = UDim.new(0,8)
-        btn.Parent = scrollFrame
-        btn.ZIndex = 3
-
-        btn.Activated:Connect(function()
-            duplicateTool(tool)
-        end)
-    end
-
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
-end
-
-updateTools()
-task.spawn(function()
-    while true do
-        task.wait(3)
-        updateTools()
-    end
-end)
-
--- Drag for Touch devices
-local dragging, dragInput, dragStart, startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    frame.Position = UDim2.fromOffset(startPos.X + delta.X, startPos.Y + delta.Y)
-end
-
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
-        dragInput = input
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input == dragInput then
-        update(input)
-    end
-end)
+-- تحديث أول مرة
+refreshTools()
