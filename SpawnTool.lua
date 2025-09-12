@@ -69,20 +69,23 @@ local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.fromScale(0.95,0.85)
 scrollFrame.Position = UDim2.fromScale(0.025,0.1)
 scrollFrame.BackgroundTransparency = 1
-scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
 scrollFrame.ScrollBarThickness = 8
 scrollFrame.Parent = frame
 
-local uiList = Instance.new("UIListLayout", scrollFrame)
+-- UIListLayout ثابت
+local uiList = Instance.new("UIListLayout")
 uiList.Padding = UDim.new(0,5)
 uiList.SortOrder = Enum.SortOrder.LayoutOrder
+uiList.Parent = scrollFrame
 
 -- Populate Tools
 local function updateTools()
-    scrollFrame:ClearAllChildren()
-    local uiList = Instance.new("UIListLayout", scrollFrame)
-    uiList.Padding = UDim.new(0,5)
-    uiList.SortOrder = Enum.SortOrder.LayoutOrder
+    -- إزالة Buttons القديمة فقط بدون حذف الـ UIListLayout
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
 
     for _, tool in ipairs(ServerStorage:GetChildren()) do
         if tool:IsA("Tool") then
@@ -103,8 +106,8 @@ local function updateTools()
         end
     end
 
-    local contentSize = uiList.AbsoluteContentSize
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,contentSize.Y + 10)
+    -- تحديث CanvasSize بعد إضافة كل Tools
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
 updateTools()
