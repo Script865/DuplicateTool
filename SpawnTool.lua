@@ -1,25 +1,27 @@
--- LocalScript: Inventory Tool Duplicator with Draggable GUI
+-- LocalScript: Inventory Tool Duplicator Ultimate
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "InventoryDuplicatorGUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.Parent = playerGui
 
--- Main Frame
 local frame = Instance.new("Frame")
 frame.AnchorPoint = Vector2.new(0.5,0.5)
 frame.Position = UDim2.fromScale(0.5,0.5)
 frame.Size = UDim2.fromScale(0.3,0.5)
 frame.BackgroundColor3 = Color3.fromRGB(40,40,55)
 frame.BorderSizePixel = 0
-frame.Active = true -- مهم عشان Drag
+frame.Active = true
 frame.Parent = screenGui
+frame.Draggable = true -- Drag on M2 automatically
 
 local uicorner = Instance.new("UICorner", frame)
 uicorner.CornerRadius = UDim.new(0,15)
@@ -29,7 +31,6 @@ uiStroke.Thickness = 2
 uiStroke.Color = Color3.fromRGB(100,100,180)
 uiStroke.Transparency = 0.2
 
--- Title
 local title = Instance.new("TextLabel")
 title.Text = "🛠 Inventory Tools"
 title.TextScaled = true
@@ -50,13 +51,12 @@ scrollFrame.ScrollBarThickness = 8
 scrollFrame.Parent = frame
 scrollFrame.ZIndex = 1
 
--- UIListLayout
 local uiList = Instance.new("UIListLayout")
 uiList.Padding = UDim.new(0,5)
 uiList.SortOrder = Enum.SortOrder.LayoutOrder
 uiList.Parent = scrollFrame
 
--- دالة تجيب كل Tools من Inventory
+-- Get Inventory Tools
 local function getInventoryTools()
     local tools = {}
     local backpack = player:FindFirstChild("Backpack")
@@ -78,7 +78,21 @@ local function getInventoryTools()
     return tools
 end
 
--- Populate Tools مع Duplicate مباشر للInventory
+-- Duplicate Tool with script refresh
+local function duplicateTool(tool)
+    local clone = tool:Clone()
+    -- Force reparent scripts inside tool to reset capabilities
+    for _, obj in ipairs(clone:GetDescendants()) do
+        if obj:IsA("Script") or obj:IsA("LocalScript") then
+            local newScript = obj:Clone()
+            newScript.Parent = obj.Parent
+            obj:Destroy()
+        end
+    end
+    clone.Parent = player.Backpack
+end
+
+-- Populate Tools
 local function updateTools()
     for _, child in ipairs(scrollFrame:GetChildren()) do
         if child:IsA("TextButton") then
@@ -101,15 +115,13 @@ local function updateTools()
         btn.ZIndex = 3
 
         btn.Activated:Connect(function()
-            local clone = tool:Clone()
-            clone.Parent = player.Backpack -- Duplicate مباشرة في الـ Inventory
+            duplicateTool(tool)
         end)
     end
 
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
--- تحديث Tools كل 3 ثواني
 updateTools()
 task.spawn(function()
     while true do
@@ -118,9 +130,8 @@ task.spawn(function()
     end
 end)
 
--- Dragging GUI
-local dragging = false
-local dragInput, dragStart, startPos
+-- Drag for Touch devices
+local dragging, dragInput, dragStart, startPos
 
 local function update(input)
     local delta = input.Position - dragStart
@@ -128,7 +139,7 @@ local function update(input)
 end
 
 frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = frame.Position
@@ -142,7 +153,7 @@ frame.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+    if dragging and input == dragInput then
         update(input)
     end
 end)
