@@ -1,48 +1,12 @@
--- LocalScript: ServerStorage Tools GUI (Works for Grow a Garden)
+-- LocalScript: Inventory Tool Duplicator Final
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
-local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- RemoteEvent
-local REMOTE_NAME = "SpawnSingleToolEvent"
-local remote = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
-if not remote then
-    remote = Instance.new("RemoteEvent")
-    remote.Name = REMOTE_NAME
-    remote.Parent = ReplicatedStorage
-end
-
--- Server-side spawn
-if RunService:IsServer() then
-    remote.OnServerEvent:Connect(function(player, toolName)
-        local function findToolRecursive(parent, name)
-            for _, obj in ipairs(parent:GetChildren()) do
-                if obj:IsA("Tool") and obj.Name == name then
-                    return obj
-                end
-                local found = findToolRecursive(obj, name)
-                if found then return found end
-            end
-            return nil
-        end
-
-        local tool = findToolRecursive(ServerStorage, toolName)
-        if tool then
-            local clone = tool:Clone()
-            clone.Parent = player.Backpack
-        end
-    end)
-    return
-end
-
--- ========= GUI =========
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ToolsGUI"
+screenGui.Name = "InventoryDuplicatorGUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.Parent = playerGui
@@ -67,7 +31,7 @@ uiStroke.Transparency = 0.2
 
 -- Title
 local title = Instance.new("TextLabel")
-title.Text = "🛠 ServerStorage Tools"
+title.Text = "🛠 Inventory Tools"
 title.TextScaled = true
 title.TextColor3 = Color3.fromRGB(240,240,255)
 title.BackgroundTransparency = 1
@@ -86,29 +50,35 @@ scrollFrame.ScrollBarThickness = 8
 scrollFrame.Parent = frame
 scrollFrame.ZIndex = 1
 
--- UIListLayout ثابت
+-- UIListLayout
 local uiList = Instance.new("UIListLayout")
 uiList.Padding = UDim.new(0,5)
 uiList.SortOrder = Enum.SortOrder.LayoutOrder
 uiList.Parent = scrollFrame
 
--- Recursive function to find all Tools
-local function getAllTools(parent)
+-- دالة تجيب كل Tools من Inventory
+local function getInventoryTools()
     local tools = {}
-    for _, obj in ipairs(parent:GetChildren()) do
-        if obj:IsA("Tool") then
-            table.insert(tools, obj)
-        elseif #obj:GetChildren() > 0 then
-            local subTools = getAllTools(obj)
-            for _, t in ipairs(subTools) do
-                table.insert(tools, t)
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                table.insert(tools, tool)
+            end
+        end
+    end
+    local character = player.Character
+    if character then
+        for _, tool in ipairs(character:GetChildren()) do
+            if tool:IsA("Tool") then
+                table.insert(tools, tool)
             end
         end
     end
     return tools
 end
 
--- Populate Tools
+-- Populate Tools مع Duplicate مباشر للInventory
 local function updateTools()
     for _, child in ipairs(scrollFrame:GetChildren()) do
         if child:IsA("TextButton") then
@@ -116,7 +86,7 @@ local function updateTools()
         end
     end
 
-    local tools = getAllTools(ServerStorage)
+    local tools = getInventoryTools()
     for _, tool in ipairs(tools) do
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1,0,0,40)
@@ -128,21 +98,25 @@ local function updateTools()
         local corner = Instance.new("UICorner", btn)
         corner.CornerRadius = UDim.new(0,8)
         btn.Parent = scrollFrame
+        btn.ZIndex = 3
 
         btn.Activated:Connect(function()
-            remote:FireServer(tool.Name)
+            local clone = tool:Clone()
+            clone.Parent = player.Backpack -- Duplicate مباشرة في الـ Inventory
         end)
     end
 
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
--- تحديث Tools كل 5 ثواني لضمان ظهور كل الأدوات
+-- تحديث Tools كل 3 ثواني
 updateTools()
-while true do
-    task.wait(5)
-    updateTools()
-end
+task.spawn(function()
+    while true do
+        task.wait(3)
+        updateTools()
+    end
+end)
 
 -- Dragging GUI
 local dragging, dragInput, dragStart, startPos
