@@ -1,4 +1,4 @@
--- LocalScript: ServerStorage Tools GUI Recursive
+-- LocalScript: ServerStorage Tools GUI
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local playerGui = player:WaitForChild("PlayerGui") -- ضمان وجود PlayerGui
 
 -- RemoteEvent
 local REMOTE_NAME = "SpawnSingleToolEvent"
@@ -45,7 +45,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ToolsGUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
-screenGui.Parent = playerGui
+screenGui.Parent = playerGui -- وضعه بعد التأكد من PlayerGui
 
 -- Main Frame
 local frame = Instance.new("Frame")
@@ -80,4 +80,84 @@ local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.fromScale(0.95,0.85)
 scrollFrame.Position = UDim2.fromScale(0.025,0.1)
 scrollFrame.BackgroundTransparency = 1
-scrollFrame.ScrollBarThickness =
+scrollFrame.ScrollBarThickness = 8
+scrollFrame.Parent = frame
+
+-- UIListLayout ثابت
+local uiList = Instance.new("UIListLayout")
+uiList.Padding = UDim.new(0,5)
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+uiList.Parent = scrollFrame
+
+-- Recursive function to find all Tools
+local function getAllTools(parent)
+    local tools = {}
+    for _, obj in ipairs(parent:GetChildren()) do
+        if obj:IsA("Tool") then
+            table.insert(tools, obj)
+        elseif #obj:GetChildren() > 0 then
+            local subTools = getAllTools(obj)
+            for _, t in ipairs(subTools) do
+                table.insert(tools, t)
+            end
+        end
+    end
+    return tools
+end
+
+-- Populate Tools
+local function updateTools()
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    local tools = getAllTools(ServerStorage)
+    for _, tool in ipairs(tools) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1,0,0,40)
+        btn.BackgroundColor3 = Color3.fromRGB(70,70,120)
+        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.Text = tool.Name
+        btn.Font = Enum.Font.Gotham
+        btn.TextScaled = true
+        local corner = Instance.new("UICorner", btn)
+        corner.CornerRadius = UDim.new(0,8)
+        btn.Parent = scrollFrame
+
+        btn.Activated:Connect(function()
+            remote:FireServer(tool.Name)
+        end)
+    end
+
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
+end
+
+-- تحديث Tools بعد PlayerGui جاهز
+updateTools()
+
+-- Dragging GUI
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.fromOffset(startPos.X + delta.X, startPos.Y + delta.Y)
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        dragInput = input
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        update(input)
+    end
+end)
