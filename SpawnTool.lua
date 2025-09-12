@@ -1,4 +1,4 @@
--- LocalScript: ServerStorage Tools GUI (ScrollingFrame on top)
+-- LocalScript: ServerStorage Tools GUI (Works for Grow a Garden)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -73,17 +73,18 @@ title.TextColor3 = Color3.fromRGB(240,240,255)
 title.BackgroundTransparency = 1
 title.Size = UDim2.fromScale(1,0.1)
 title.Font = Enum.Font.GothamBold
+title.ZIndex = 2
 title.Parent = frame
 
--- ScrollingFrame فوق كل شيء داخل الـ Frame
+-- ScrollingFrame
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.fromScale(0.95,0.9) -- يغطي معظم مساحة Frame
+scrollFrame.Size = UDim2.fromScale(0.95,0.85)
 scrollFrame.Position = UDim2.fromScale(0.025,0.1)
 scrollFrame.BackgroundTransparency = 0.1
 scrollFrame.BackgroundColor3 = Color3.fromRGB(60,60,80)
 scrollFrame.ScrollBarThickness = 8
 scrollFrame.Parent = frame
-scrollFrame.ZIndex = 2 -- يتأكد أنه فوق باقي العناصر
+scrollFrame.ZIndex = 1
 
 -- UIListLayout ثابت
 local uiList = Instance.new("UIListLayout")
@@ -127,7 +128,6 @@ local function updateTools()
         local corner = Instance.new("UICorner", btn)
         corner.CornerRadius = UDim.new(0,8)
         btn.Parent = scrollFrame
-        btn.ZIndex = 3 -- فوق الـ ScrollingFrame الخلفي
 
         btn.Activated:Connect(function()
             remote:FireServer(tool.Name)
@@ -137,7 +137,12 @@ local function updateTools()
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
+-- تحديث Tools كل 5 ثواني لضمان ظهور كل الأدوات
 updateTools()
+while true do
+    task.wait(5)
+    updateTools()
+end
 
 -- Dragging GUI
 local dragging, dragInput, dragStart, startPos
