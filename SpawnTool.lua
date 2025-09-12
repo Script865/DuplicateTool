@@ -1,57 +1,47 @@
+-- LocalScript داخل StarterGui
+
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = game.Players.LocalPlayer
+local player = Players.LocalPlayer
 
-local event = ReplicatedStorage:WaitForChild("DuplicateToolEvent")
+-- Create RemoteEvent if not found
+local event = ReplicatedStorage:FindFirstChild("DuplicateToolEvent")
+if not event then
+	event = Instance.new("RemoteEvent")
+	event.Name = "DuplicateToolEvent"
+	event.Parent = ReplicatedStorage
+end
 
--- إنشاء GUI
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "DuplicateGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 250, 0, 300)
-frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+frame.Size = UDim2.new(0,250,0,150)
+frame.Position = UDim2.new(0.5,-125,0.5,-75)
 frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
 
-local scrolling = Instance.new("ScrollingFrame")
-scrolling.Size = UDim2.new(1, -10, 1, -10)
-scrolling.Position = UDim2.new(0, 5, 0, 5)
-scrolling.CanvasSize = UDim2.new(0,0,0,0)
-scrolling.ScrollBarThickness = 6
-scrolling.Parent = frame
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundColor3 = Color3.fromRGB(50,50,50)
+title.Text = "Duplicate Tool"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Parent = frame
 
-local uiList = Instance.new("UIListLayout")
-uiList.Parent = scrolling
-uiList.Padding = UDim.new(0,5)
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0,200,0,50)
+button.Position = UDim2.new(0.5,-100,0.5,-25)
+button.Text = "Duplicate"
+button.BackgroundColor3 = Color3.fromRGB(0,170,255)
+button.TextColor3 = Color3.fromRGB(255,255,255)
+button.Parent = frame
 
--- تحديث الأدوات
-local function refreshTools()
-	scrolling:ClearAllChildren()
-	uiList.Parent = scrolling
-
-	for _,tool in ipairs(player.Backpack:GetChildren()) do
-		if tool:IsA("Tool") then
-			local button = Instance.new("TextButton")
-			button.Size = UDim2.new(1, -10, 0, 40)
-			button.BackgroundColor3 = Color3.fromRGB(70,70,70)
-			button.TextColor3 = Color3.fromRGB(255,255,255)
-			button.Text = "Duplicate: " .. tool.Name
-			button.Parent = scrolling
-
-			button.MouseButton1Click:Connect(function()
-				event:FireServer(tool.Name)
-			end)
-		end
-	end
-end
-
--- تحديث عند إضافة/إزالة أدوات
-player.Backpack.ChildAdded:Connect(refreshTools)
-player.Backpack.ChildRemoved:Connect(refreshTools)
-
--- تحديث أول مرة
-refreshTools()
+-- Button click
+button.MouseButton1Click:Connect(function()
+	event:FireServer()
+end)
